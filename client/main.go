@@ -23,6 +23,10 @@ func main() {
 
 	defer ch.Close()
 
+	if err = ch.ExchangeDeclare("logs", "fanout", false, false, false, false, nil); err != nil {
+		log.Fatalln("Cannot create exchange", err)
+	}
+
 	queryParams, err := ch.QueueDeclare(
 		"first",
 		false,
