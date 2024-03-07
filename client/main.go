@@ -27,33 +27,32 @@ func main() {
 		log.Fatalln("Cannot create exchange", err)
 	}
 
-	queryParams, err := ch.QueueDeclare(
-		"first",
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
+	// _, err = ch.QueueDeclare(
+	// 	"first",
+	// 	false,
+	// 	false,
+	// 	false,
+	// 	false,
+	// 	nil,
+	// )
 
-	if err != nil {
-		log.Fatalln("Cannot create queue", err)
-	}
+	// if err != nil {
+	// 	log.Fatalln("Cannot create queue", err)
+	// }
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	body := "Дарова"
 
 	err = ch.PublishWithContext(ctx,
+		"logs",
 		"",
-		queryParams.Name,
 		false,
 		false,
 		rabbit.Publishing{
-			DeliveryMode: rabbit.Persistent,
-			ContentType:  "text/plain",
-			Body:         []byte(body),
+			ContentType: "text/plain",
+			Body:        []byte(body),
 		})
 
 	if err != nil {

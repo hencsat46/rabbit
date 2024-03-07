@@ -2,12 +2,18 @@ package main
 
 import (
 	"log"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	rabbit "github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+
 	conn, err := rabbit.Dial("amqp://guest:guest@localhost:5672")
 	if err != nil {
 		log.Fatalln("Cannot connect to rabbitmq. ", err)
@@ -22,11 +28,15 @@ func main() {
 
 	defer ch.Close()
 
+	if err = ch.ExchangeDeclare("logs", "fanout", false, false, false, false, nil); err != nil {
+		log.Fatalln("Cannot create exchange", err)
+	}
+
 	_, err = ch.QueueDeclare(
-		"first",
+		"",
 		false,
 		false,
-		false,
+		true,
 		false,
 		nil,
 	)
@@ -35,10 +45,14 @@ func main() {
 		log.Fatalln("Cannot create queue", err)
 	}
 
+	if err = ch.QueueBind("", "", "logs", false, nil); err != nil {
+		log.Fatalln("Cannot bind queue", err)
+	}
+
 	messages, err := ch.Consume(
-		"first",
-		"num1",
-		false,
+		"",
+		"",
+		true,
 		false,
 		false,
 		false,
@@ -49,13 +63,9 @@ func main() {
 		log.Fatalln("Cannot create consumer", err)
 	}
 
-	done := make(chan struct{})
-
 	go func() {
 		for message := range messages {
 			log.Println(string(message.Body))
-			time.Sleep(10 * time.Second)
-			message.Ack(false)
 		}
 	}()
 
